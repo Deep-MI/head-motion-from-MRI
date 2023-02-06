@@ -1,0 +1,23 @@
+{
+	"name": "motion_detection_network",
+	"lr": 0.005,
+	"batch_size": 2,
+	"print_freq": 10,
+	"start_epoch": 0,
+	"parameter_json": null,
+	"epochs": 500,
+	"droprate": 0.5,
+	"growth": 2,
+	"momentum": null,
+	"weight_decay": 0.05,
+	"resume": false,
+	"ground_truth": "./data_2022_nostrat/fMRI_optim_motion_avg_t1_drop.csv",
+	"data_dir": "./data_2022_nostrat",
+	"sequence": "background",
+	"soft_labels": true,
+	"twoD": false,
+	"patching": false,
+	"tensorboard": true,
+	"testrun": false,
+	"reruns": 5
+}
