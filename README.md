@@ -5,6 +5,17 @@ This repository contains code used in training and evaluating a neural network t
 
 The executables are located in /scripts
 
+
+## Build docker
+
+The commands in this assume that you run the network training/evaluation in a docker container.
+To create this container execute
+
+```docker build -f docker -t pytorch_opencv:regression_pyt1.11.0```
+
+If you want to run things locally, omit the docker directives and directly execute the python scripts (command starting with "python3").
+
+
 ## Training
 
 to run dataset
@@ -23,14 +34,14 @@ To adjust network parameters take a look at the files in the dataset specific sc
 
 Take care that this network was only trained on data of the Rhineland Study and is unlikely to generalize to different MR sequences and populations.
 
-Weights can be downloaded at 
+Weights can be downloaded at [TODO]
 
 
 ## Evaluation
 
 For evaluation edit ./scripts/eval.py 
 
-```./scripts/run_evaluation_docker.sh 0 # runs on GPU #0```
+```docker run -it --rm --gpus \"device=0\" -u $(id -u) -v /etc/localtime:/etc/localtime:ro --ipc=host -v $PWD:/workspace pollakc/pytorch_opencv:regression_pyt1.11.0 python3 /workspace/scripts/rhineland/eval.py```
 
 
 ## More
