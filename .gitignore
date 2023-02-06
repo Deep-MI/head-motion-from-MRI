@@ -152,8 +152,8 @@ dmypy.json
 tensorboard_logs
 
 # data
-scripts/data
+data
 
 # weights
-scripts/weights
+weights
 
