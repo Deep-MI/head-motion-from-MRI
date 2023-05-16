@@ -1,6 +1,6 @@
 # Motion Detection Network
 
-This repository contains code used in training and evaluating a neural network to directly estimate motion during an MRI scan from MR images.
+This repository contains code used in training and evaluating a neural network to directly estimate motion during an MRI scan from MR images. Published in the proceedings of ISBI 2023. https://arxiv.org/abs/2302.14490
 
 
 The executables are located in /scripts
