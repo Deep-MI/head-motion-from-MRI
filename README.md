@@ -43,12 +43,12 @@ To adjust network parameters take a look at the files in the dataset specific sc
 
 Take care that this network was only trained on data of the Rhineland Study and is unlikely to generalize to different MR sequences and populations.
 
-Weights can be downloaded at [TODO]
+Weights can be downloaded at https://zenodo.org/record/7940494 .
 
 
 ## Evaluation
 
-For evaluation edit ./scripts/eval.py 
+For evaluation edit ./scripts/eval.py to point to the correct path / and input file and then run the docker with
 
 ```docker run -it --rm --gpus \"device=0\" -u $(id -u) -v /etc/localtime:/etc/localtime:ro --ipc=host -v $PWD:/workspace pollakc/pytorch_opencv:regression_pyt1.11.0 python3 /workspace/scripts/rhineland/eval.py```
 
