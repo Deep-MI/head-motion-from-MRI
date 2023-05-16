@@ -18,9 +18,18 @@ If you want to run things locally, omit the docker directives and directly execu
 
 ## Training
 
-to run dataset
+In the first lines of the "train.py" script some paths are resolved to find a two files:
 
-```docker run -it --rm --gpus \"device=0\" -u $(id -u) -v /etc/localtime:/etc/localtime:ro --ipc=host -v $PWD:/workspace user/pytorch_opencv:regression_pyt1.11.0 python3 /workspace/scripts/rhineland/train.py```
+1. A text/csv file containing only paths to MRI images with each path being in a new line. This is the input data to the network. Each image is expected to be in a unique folder. (e.g. /my/path/e25122/T1.nii.gz)
+2. A csv file matching the image folders to numbers (which represent the motion levels in our case - e.g.  e25122, 1.53)
+
+After setting up these files and the paths to find them, in the parameter.json and train.py you can launch the training with:
+
+```python3 scripts/train.py```
+
+or (recommended) build the docker container (in the "docker" folder) to install all required packages and then launch the training with
+
+```docker run -it --rm --gpus \"device=0\" -u $(id -u) -v /etc/localtime:/etc/localtime:ro --ipc=host -v $PWD:/workspace user/pytorch_opencv:regression_pyt1.11.0 python3 /workspace/scripts/train.py```
 
 Output will be written to a specified output folder, ./tensorboard_outputs and to the console
 
