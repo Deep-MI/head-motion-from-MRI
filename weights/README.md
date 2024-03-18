@@ -1,0 +1,1 @@
+Weights for the model should be downloaded to this directory from [Zenodo (https://zenodo.org/records/7940494)](https://zenodo.org/records/7940494)

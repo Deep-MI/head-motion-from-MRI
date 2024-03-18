@@ -1,50 +1,29 @@
-import context
-
-
 import os
-from itertools import product
-import re
-#import argparse
-from argparse import Namespace
 import os
-#import shutil
-#import time
 from datetime import datetime
-#import json
-import pickle
+
+import argparse
+import shutil
 
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable, ImageGrid
-
-
-
-
-
-
-
-import cv2 # this has to come before pytorch import to avoid collision
 import torch
-from torch import nn
-#from torch.utils.data import DataLoader
-import torchvision
 from torchvision.transforms import Compose
 
+
+from modenet.transforms import utility
 from modenet.logging import tensorboard
-from modenet.transforms import utility, augmentation, regularization
-from modenet.utils.training import training_loop
-from modenet.dataset import hdf5_dataset, patching
+from modenet.dataset import hdf5_dataset
 from modenet.dataset.dataloader import DataLoader
-from modenet.logging import metrics, checkpointing, tensorboard
-from modenet.models.FCN import SFCN, FCN2D, FCN3D, custom_SFCN
-from modenet.models import densenet3d
-
-from medcam import medcam
-import captum.attr as capt
+from modenet.logging import metrics, tensorboard
+from modenet.models.FCN import custom_SFCN
 
 
-def run_model_on_dataset(model, val_loader, denormalizer, IS_3D, PATCHING, softlabel_helper):
+
+
+def run_model_on_dataset(model, val_loader, PATCHING, softlabel_helper):
     """
     takes input model and data loader and 
     returns all model inputs and outputs in
@@ -118,7 +97,7 @@ def run_model_on_dataset(model, val_loader, denormalizer, IS_3D, PATCHING, softl
     return input_dict, output_dict, score_keeper
 
 
-def run_analysis(run_dir, DATA_DIR, FILE_PATHS_CSV, DENSE, IS_3D, PATCHING, PATCH_SIZE, SOFTLABEL, TESTSET=False):
+def run_analysis(run_dir, output_csv, DATA_DIR, FILE_PATHS_CSV, DENSE, IS_3D, PATCHING, PATCH_SIZE, SOFTLABEL, TESTSET=False, GT_PATH=None):
     
     checkpoint_filepath = run_dir
 
@@ -130,13 +109,31 @@ def run_analysis(run_dir, DATA_DIR, FILE_PATHS_CSV, DENSE, IS_3D, PATCHING, PATC
 
         print('=> was saved at epoch',checkpoint['epoch'])
 
+        if GT_PATH is not None and os.path.isfile(GT_PATH):
+            print(f'using {GT_PATH} instead of {hyperparameters.ground_truth}')
+            hyperparameters.ground_truth = GT_PATH
+        else:
+            hyperparameters.ground_truth = None
+
         if not os.getcwd().startswith('/workspace/') and hyperparameters.ground_truth.startswith('/workspace/'):
-            hyperparameters.ground_truth = hyperparameters.ground_truth.replace('/workspace/','/home/pollakc/MoDe-Net/')
             print('warning, loading data from private workspace')
 
         print('=> ground truth',hyperparameters.ground_truth)
-        transform_test = torch.load(os.path.join('/'.join(checkpoint_filepath.split('/')[:-1]), 'transforms_test.pt'))
-        softlabel_helper = torch.load(os.path.join('/'.join(checkpoint_filepath.split('/')[:-1]), 'softlabel_helper.pt'))
+        # transform_test = torch.load(os.path.join('/'.join(checkpoint_filepath.split('/')[:-1]), 'transforms_test.pt'))
+        # softlabel_helper = torch.load(os.path.join('/'.join(checkpoint_filepath.split('/')[:-1]), 'softlabel_helper.pt'))
+
+        transform_test = Compose([
+            utility.ValueToTensor(['image'], dtype=torch.float32),
+            utility.TensorToFloatTensor(['image','label']),
+            utility.TensorUnsqueeze(['image'], 0)
+        ])
+
+        # softlabel constants
+        softlabel_max = 0.39
+        #softlabel_max = pd.read_csv(hyperparameters.ground_truth).max().values[1] + pd.read_csv(hyperparameters.ground_truth).max().values[1] * 0.005
+        num_bins = 40
+        step_per_bin = softlabel_max/(num_bins+1)
+        softlabel_helper = utility.ToSoftLabel('label', 'hard_label',(0,num_bins*step_per_bin),step_per_bin, require_grad=True)
 
         
         if PATCHING:
@@ -155,7 +152,7 @@ def run_analysis(run_dir, DATA_DIR, FILE_PATHS_CSV, DENSE, IS_3D, PATCHING, PATC
                     dataset_folder=DATA_DIR, training=False)
 
 
-        val_loader = DataLoader(val_dataset, batch_size=2, shuffle=False, num_workers=8, drop_last=False)
+        val_loader = DataLoader(val_dataset, batch_size=1, shuffle=False, num_workers=2, drop_last=False)
         sample = iter(val_loader).next()
 
         
@@ -195,7 +192,7 @@ def run_analysis(run_dir, DATA_DIR, FILE_PATHS_CSV, DENSE, IS_3D, PATCHING, PATC
         else:
             model = custom_SFCN(sequence=hyperparameters.sequence, dropout=hyperparameters.droprate, output_dim=output_classes)
 
-        model = torch.nn.DataParallel(model)
+        #model = torch.nn.DataParallel(model)
 
         # get the number of model parameters
         print('Number of model parameters: {}'.format(
@@ -216,59 +213,85 @@ def run_analysis(run_dir, DATA_DIR, FILE_PATHS_CSV, DENSE, IS_3D, PATCHING, PATC
 
 
     print('checking ',len(val_dataset),'samples')
-    input_dict, output_dict, score_keeper = run_model_on_dataset(model, val_loader, None, IS_3D, PATCHING, softlabel_helper)
+    input_dict, output_dict, score_keeper = run_model_on_dataset(model, val_loader, PATCHING, softlabel_helper)
 
 
-    #plot_output(input_dict, output_dict)    
-    print('best measured accuracy (R2) ', checkpoint['best_precision'])
-    print('measured accuracy      (R2) ', score_keeper.calculateR2())
-    print('measured accuracy      (spearmanR) ', score_keeper.calculateSpearmanR())
-    print('measured accuracy      (pearsonR) ', score_keeper.calculateSpearmanR())
+    # #plot_output(input_dict, output_dict)    
+    # print('best measured accuracy (R2) ', checkpoint['best_precision'])
+    # print('measured accuracy      (R2) ', score_keeper.calculateR2())
+    # print('measured accuracy      (spearmanR) ', score_keeper.calculateSpearmanR())
+    # print('measured accuracy      (pearsonR) ', score_keeper.calculateSpearmanR())
 
-    input_dict['image'] = input_dict['image'].squeeze()
+    # input_dict['image'] = input_dict['image'].squeeze()
 
-    img1, img2 = tensorboard.saveInputOutput(0, input_dict['image'], output_dict['label'], input_dict['label'], prefix='val')
+    # img1, img2 = tensorboard.saveInputOutput(0, input_dict['image'], output_dict['label'], input_dict['label'], prefix='val')
 
-    plt.imshow(np.invert(img1[0,:,:]), cmap='gray')
-    plt.imshow(np.swapaxes(np.swapaxes(img2,0,2),0,1))
+    # plt.imshow(np.invert(img1[0,:,:]), cmap='gray')
+    # plt.imshow(np.swapaxes(np.swapaxes(img2,0,2),0,1))
 
-    plt.figure()
-    if len(score_keeper.output.squeeze().shape) > 1:
-        plt.scatter(np.mean(score_keeper.output, axis=1), np.mean(score_keeper.target, axis=1))
-    else:
-        plt.scatter(score_keeper.output, score_keeper.target)
-    plt.ylabel('ground truth')
-    plt.xlabel('prediction')
-    plt.show()
-
-    SAVE_CSV = False
-    if SAVE_CSV:
-        #with open('/workspace/network_output_testset_2.pickle', 'wb') as f:
-        #    pickle.dump({'output' : score_keeper.output, 'target' : score_keeper.target},f)
-
-        pd.DataFrame(score_keeper.output,index=score_keeper.subjects, columns=['network_output']).to_csv('/workspace/cfcn_t1_output_valset.csv')
+    # plt.figure()
+    # if len(score_keeper.output.squeeze().shape) > 1:
+    #     plt.scatter(np.mean(score_keeper.output, axis=1), np.mean(score_keeper.target, axis=1))
+    # else:
+    #     plt.scatter(score_keeper.output, score_keeper.target)
+    # plt.ylabel('ground truth')
+    # plt.xlabel('prediction')
+    # plt.show()
 
 
+    output_df = pd.DataFrame(score_keeper.output,index=score_keeper.subjects, columns=['network_output'])
+    output_df.index.name = 'subjectID'
+    output_df.to_csv(output_csv)
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description='Image Analysis')
+    parser.add_argument('-type', choices=['T1', 'T2', 'FLAIR'], help='Type of image (T1, T2, FLAIR)', required=True)
+    parser.add_argument('-i', '--input', help='Path to a txt file with image paths or a path to a single image', required=True)
+    parser.add_argument('-o', '--output', help='Path to the csv', required=True)
+    return parser.parse_args()
 
 if __name__ == '__main__':
+    args = parse_args()
+    image_type = args.type.upper()
+    image_path = args.input
+
+    if args.input.endswith('.nii.gz') or args.input.endswith('.nii'):
+        # write text file with the path to the image
+        with open('input.txt', 'w') as f:
+            f.write(args.input)
+        args.input = '../input.txt'
+
     # change working directory to the files directory
     if len(os.path.dirname(__file__)) > 0:
         os.chdir(os.path.dirname(__file__))
 
 
-    # best on validation;   testset- 0.4329353048642992
-    run_dir = '../../tensorboard_logs/2022-10-14-14:49:40_sfcn_kld_t1ns_csfcn_test/model_best.pth.tar'
-    
+    # best on validation
+    if image_type == 'T1':
+        run_dir = os.path.join(os.getcwd(), '..', 'weights', 'best_t1.pth.tar')
+    elif image_type == 'T2':
+        run_dir = os.path.join(os.getcwd(), '..', 'weights', 'best_t2.pth.tar')
+    elif image_type == 'FLAIR':
+        run_dir = os.path.join(os.getcwd(), '..', 'weights', 'best_flair.pth.tar')
 
-    DENSE = False
+    DENSENET = False
     IS_3D = True
     PATCHING = False
     PATCH_SIZE = None
     SOFTLABEL = True
-    data_dir = './data_2022_nostrat'
-    val_files = './data_2022_nostrat/T1_val.csv'
+    #data_dir = '../data_new'
+    #val_files = '../data/T1_test.csv'
+
+    #gt_path = '../data/fMRI_optim_motion_avg_t1_drop.csv'
 
 
     print('Pytorch Version', torch.__version__)
 
-    run_analysis(run_dir, data_dir, val_files, DENSE, IS_3D, PATCHING, PATCH_SIZE, SOFTLABEL, TESTSET=True)
+    data_dir = '/tmp/tmp_hdf5s'
+    os.makedirs(data_dir, exist_ok=True)
+    run_analysis(run_dir=run_dir, output_csv=args.output, DATA_DIR=data_dir, FILE_PATHS_CSV=args.input, DENSE=DENSENET, IS_3D=IS_3D, PATCHING=PATCHING, PATCH_SIZE=PATCH_SIZE, SOFTLABEL=SOFTLABEL, TESTSET=False, GT_PATH=None)
+    # remove the temporary directory with the hdf5 files
+    print(f'removing temporary directory with hdf5 files {data_dir}')
+    shutil.rmtree(data_dir)
+

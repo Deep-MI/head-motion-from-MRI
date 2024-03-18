@@ -56,7 +56,7 @@ pattern       re
 
 """
 #def loadDataset(augments, dataset_name, csv_file, training, pattern='*', image_name='T1_RMS.nii.gz', debug=False, torchio=False, external_normalizer=None, patch_size=None):
-def loadDataset(augments, dataset_name, dataset_folder, ground_truth_csv, training, path_csv, debug=False, torchio=False, external_normalizer=None, no_files=None):    
+def loadDataset(augments, dataset_name, dataset_folder, ground_truth_csv, training, path_csv, debug=False, torchio=False, external_normalizer=None, no_files=None):
     '''
     loads dataset from hdf5 and creates it if it wasn't created for those input parameters
     '''
@@ -78,7 +78,10 @@ def loadDataset(augments, dataset_name, dataset_folder, ground_truth_csv, traini
         hdf5.write_hdf5_dataset(is_small=False)
         image_data = hdf5.load_hdf5_dataset(no_files)
 
-    motion_data = loadMotionData(ground_truth_csv)
+    if ground_truth_csv is not None:
+        motion_data = loadMotionData(ground_truth_csv)
+    else:
+        motion_data = None
 
     if torchio:
         #return TorchIOMotionDataset(image_data, motion_data, normalize=False, transforms=augments, external_normalizer=external_normalizer, training=training, patch_size=patch_size)
@@ -196,6 +199,13 @@ class MRIMotionDataset(Dataset):
             #self.images = images
             self.labels = labels.squeeze()
             #self.subjects = subjects
+        elif labels is None:
+            assert(self.images.shape[0] == len(self.subjects))
+            self.is_normalized = False
+            self.normalizer = None
+            self.denormalizer = None
+            self.labels = torch.zeros(self.images.shape[0])
+
         else:
             raise ValueError('unknown input type for parameter "labels"', type(labels))
 
@@ -288,9 +298,14 @@ class Hdf5Handler:
         # self.subject_dirs = [glob(i) for i in self.search_pattern]
 
         self.subject_dirs = np.genfromtxt(params['path_csv'],dtype='str')
+        # check if subjects dirs is scalar
+        if self.subject_dirs.shape == ():
+            self.subject_dirs = np.array([self.subject_dirs])
 
         #flatten = lambda l: [item for sublist in l for item in sublist]
         #self.subject_dirs = flatten(self.subject_dirs)
+            
+        print(self.subject_dirs.shape)
 
         self.data_set_size = len(self.subject_dirs)
 

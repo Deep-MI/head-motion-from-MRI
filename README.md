@@ -11,7 +11,7 @@ The executables are located in /scripts
 The commands in this assume that you run the network training/evaluation in a docker container.
 To create this container execute
 
-```docker build -f docker -t pytorch_opencv:regression_pyt1.11.0```
+```docker build -f docker -t pytorch_opencv:regression_pyt1.11.0 .```
 
 If you want to run things locally, omit the docker directives and directly execute the python scripts (command starting with "python3").
 
@@ -41,7 +41,7 @@ Weights can be downloaded at [TODO]
 
 For evaluation edit ./scripts/eval.py 
 
-```docker run -it --rm --gpus \"device=0\" -u $(id -u) -v /etc/localtime:/etc/localtime:ro --ipc=host -v $PWD:/workspace pollakc/pytorch_opencv:regression_pyt1.11.0 python3 /workspace/scripts/rhineland/eval.py```
+```docker run -it --rm --gpus \"device=0\" -u $(id -u) -v /etc/localtime:/etc/localtime:ro --ipc=host -v $PWD:/workspace pollakc/pytorch_opencv:regression_pyt1.11.0 python3 /workspace/scripts/eval.py```
 
 
 ## More
