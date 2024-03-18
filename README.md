@@ -48,13 +48,19 @@ Weights can be downloaded at https://zenodo.org/record/7940494 .
 
 ## Evaluation
 
-For evaluation edit ./scripts/eval.py to point to the correct path / and input file and then run the docker with
+For evaluation you can use the docker wrapper script run_prediction.sh
+NOTE: Avoid pre-processing the images before inference
 
-```docker run -it --rm --gpus \"device=0\" -u $(id -u) -v /etc/localtime:/etc/localtime:ro --ipc=host -v $PWD:/workspace pollakc/pytorch_opencv:regression_pyt1.11.0 python3 /workspace/scripts/eval.py```
+Example usage:
+```./run_prediction.sh -i ../path/to/T1_RMS.nii.gz -o /path/to/output.csv -t T1```
+
+Options for -t are 'T1', 'T2' and 'FLAIR'
 
 
-## More
+## Citation
 
-General learning functionalities are located in the ./modenet folder
+```
+Pollak, C., Kügler, D. and Reuter, M., 2023, April. Estimating Head Motion from Mr-Images. In 2023 IEEE 20th International Symposium on Biomedical Imaging (ISBI) (pp. 1-5). IEEE.
+```
 
 
