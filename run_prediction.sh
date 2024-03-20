@@ -40,4 +40,4 @@ docker run -it --rm --gpus all -u $(id -u) \
 -v $output_dir:$output_dir \
 -v /etc/localtime:/etc/localtime:ro \
 -v $input_file:$input_file:ro --ipc=host \
--v $PWD:/workspace pollakc/pytorch_opencv:regression_pyt1.11.0 /workspace/docker/run_prediction_docker.sh $input_file $output_file $type
+-v $PWD:/workspace $USER/pytorch_opencv:regression_pyt1.11.0 /workspace/docker/run_prediction_docker.sh $input_file $output_file $type
