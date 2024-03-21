@@ -9,9 +9,9 @@ The executables are located in /scripts
 ## Build docker
 
 The commands in this assume that you run the network training/evaluation in a docker container.
-To create this container execute
+To create this container execute (from the base directory ie. `head-motion-from-MRI`)
 
-```docker build -f docker -t pytorch_opencv:regression_pyt1.11.0 .```
+```docker build -f docker/Dockerfile -t $USER/pytorch_opencv:regression_pyt1.11.0 .```
 
 If you want to run things locally, omit the docker directives and directly execute the python scripts (command starting with "python3").
 

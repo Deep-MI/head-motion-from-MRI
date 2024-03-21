@@ -370,7 +370,7 @@ class Hdf5Handler:
             print("Volume Nr: {} Processing MRI Data from {}".format(idx, current_subject))
 
             # Load image
-            orig = nib.load(current_subject).get_data()
+            orig = np.asanyarray(nib.load(current_subject).dataobj)
             # orig = nib.load(os.path.join(current_subject, self.orig_name))
             #src_min, scale = conform.getscale(orig.get_fdata(), dst_min=0, dst_max=1, f_low=0.0, f_high=0.999)
             #orig = conform.scalecrop(orig.get_fdata(), dst_min=0, dst_max=1, src_min=src_min, scale=scale)
