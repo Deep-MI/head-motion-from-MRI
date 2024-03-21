@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # hard coded solution for now
-$DATA_DIR=/groups/ag-reuter/projects/datasets/flair_synthesis/scans/
+DATA_DIR="/groups/ag-reuter/projects/datasets/flair_synthesis/scans"
 
 # commandline arguments
 
@@ -42,6 +42,6 @@ fi
 docker run -it --rm --gpus all -u $(id -u) \
 -v $output_dir:$output_dir \
 -v /etc/localtime:/etc/localtime:ro \
--v $DATA_DIR:$DATA_DIR:ro \
+-v "$DATA_DIR":"$DATA_DIR":ro \
 -v $input_file:$input_file:ro --ipc=host \
 -v $PWD:/workspace $USER/pytorch_opencv:regression_pyt1.11.0 /workspace/docker/run_prediction_docker.sh $input_file $output_file $type
