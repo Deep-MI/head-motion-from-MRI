@@ -370,7 +370,22 @@ class Hdf5Handler:
             print("Volume Nr: {} Processing MRI Data from {}".format(idx, current_subject))
 
             # Load image
-            orig = np.asanyarray(nib.load(current_subject).dataobj)
+            try:
+                orig = np.asanyarray(nib.load(current_subject).dataobj)
+            except Exception as e:
+                print(f"Volume: {idx} Failed Reading Data. Error: {e}")
+                print(f"this could be due to incorrect permissions for the file, try running the container as root")
+                continue
+
+            if orig.shape == (240, 320, 320):  # T2 version 2.0 with larger grid
+                print(f"cropping subj {current_subject} to 224x320x320 (original size: {orig.shape})")
+                D, H, W = orig.shape
+                d_D = D - 224
+                d_H = H - 320
+                d_W = W - 320
+                orig = orig[d_D // 2 : 224 + d_D // 2, d_H // 2 : 320 + d_H // 2, d_W // 2 : 320 + d_W // 2]
+            
+            
             # orig = nib.load(os.path.join(current_subject, self.orig_name))
             #src_min, scale = conform.getscale(orig.get_fdata(), dst_min=0, dst_max=1, f_low=0.0, f_high=0.999)
             #orig = conform.scalecrop(orig.get_fdata(), dst_min=0, dst_max=1, src_min=src_min, scale=scale)

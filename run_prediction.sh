@@ -39,6 +39,11 @@ if [ ! -f $input_file ]; then
     exit 1
 fi
 
+# Note for some cursed file setups the read permission might not be passed if the user is mapped
+# ("Failed Reading Data. Error: Could not read file: <file>") while the file is readable by the user outside the container and the path is mounted
+# try to comment out the `-u $(id -u)` part \
+
+
 docker run -it --rm --gpus all -u $(id -u) \
 -v $output_dir:$output_dir \
 -v /etc/localtime:/etc/localtime:ro \

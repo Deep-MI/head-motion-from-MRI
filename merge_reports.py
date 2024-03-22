@@ -3,7 +3,7 @@ from glob import glob
 
 for t in ["T1", "T2", "FLAIR"]:
     dfs = []
-    for r in f"reports/{t}*.csv":
+    for r in glob(f"reports/{t}*.csv"):
         df = pd.read_csv(r)
         dfs.append(df)
     df = pd.concat(dfs)
